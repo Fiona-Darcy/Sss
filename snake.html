@@ -7,9 +7,10 @@
     <canvas id="canvas" width="1024" height="1024"></canvas>
     <script>
     
-      var game = {
+      let game = {
         tickNumber: 0, 
         timer: null,
+        score: 0,
         board: [
         "#######################",
         "#                     #",
@@ -31,9 +32,9 @@
         if(game.tickNumber % 10 == 0) {
           game.addRandomFruit();
         }
-        var result = snake.move();
+        let result = snake.move();
         if(result == "gameover") {
-          alert("Game over!");
+          alert("Game over! Player scored: " + game.score);
           return;
         }
         snake.move();
@@ -42,9 +43,9 @@
       }, 
 
       addRandomFruit: function(){
-        var randomY = Math.floor(Math.random() * game.board.length) + 0;
-        var randomX = Math.floor(Math.random() * game.board[randomY].length) + 0;
-        var randomLocation = {x: randomX, y: randomY};
+        let randomY = Math.floor(Math.random() * game.board.length) + 0;
+        let randomX = Math.floor(Math.random() * game.board[randomY].length) + 0;
+        let randomLocation = {x: randomX, y: randomY};
         if(game.isEmpty(randomLocation) && !game.isFruit(randomLocation)) {
           game.fruit.push(randomLocation);
         }
@@ -59,10 +60,20 @@
       },
 
       isFruit: function(location) {
-        for(var fruitNumber = 0; fruitNumber < game.fruit.length; fruitNumber++) {
-          var fruit = game.fruit[fruitNumber];
+        for(let fruitNumber = 0; fruitNumber < game.fruit.length; fruitNumber++) {
+          let fruit = game.fruit[fruitNumber];
           if(location.x == fruit.x && location.y == fruit.y) {
             game.fruit.splice(fruitNumber, 1);
+            return true;
+          }
+        }
+        return false;
+      },
+      
+      isSnake: function(location) {
+        for(let snakePart = 0; snakePart < snake.parts.length; snakePart++) {
+          let part = snake.parts[snakePart];
+          if(location.x == part.x && location.y == part.y) {
             return true;
           }
         }
@@ -70,7 +81,7 @@
       }
     };
       
-    var snake = {
+    let snake = {
         parts: [
             {x: 4, y: 2},
             {x: 3, y: 2},
@@ -78,9 +89,9 @@
         ],
         facing: "E",
         nextLocation: function(){
-            var snakeHead = snake.parts[0];
-            var targetX = snakeHead.x;
-            var targetY = snakeHead.y;
+            let snakeHead = snake.parts[0];
+            let targetX = snakeHead.x;
+            let targetY = snakeHead.y;
             targetY = snake.facing == "N" ? targetY-1 : targetY;
             targetY = snake.facing == "S" ? targetY+1 : targetY;
             targetX = snake.facing == "W" ? targetX-1 : targetX;
@@ -88,14 +99,16 @@
             return {x: targetX, y: targetY};
         },
         move: function() {
-            var location = snake.nextLocation();
+            let location = snake.nextLocation();
+            if(game.isWall(location) 
+              || game.isSnake(location)) {
+              return "gameover";
+            }
             if(game.isEmpty(location)) {
                 snake.parts.unshift(location);
                 snake.parts.pop();
             }
-            if(game.isWall(location)) {
-              return "gameover";
-            }
+            
             if(game.isFruit(location)) {
               snake.parts.unshift(location);
               game.score++;
@@ -103,14 +116,14 @@
         }
       };
 
-    var graphics = {
+    let graphics = {
         canvas: document.getElementById("canvas"),
         squareSize: 30,
             drawBoard: function(ctx) {
-                var currentYoffset = 0;
+                let currentYoffset = 0;
                 game.board.forEach(function checkLine(line) {
                     line = line.split('');
-                    var currentXoffset = 0;
+                    let currentXoffset = 0;
                     line.forEach(function checkCharacter(character) {
                         if(character =="#") {
                             ctx.fillStyle ="black";
@@ -124,29 +137,30 @@
 
         draw: function(ctx, source, color) {
           source.forEach(function(part) {
-            var partXlocation = part.x * graphics.squareSize;
-            var partYlocation = part.y * graphics.squareSize;
+            let partXlocation = part.x * graphics.squareSize;
+            let partYlocation = part.y * graphics.squareSize;
             ctx.fillStyle = color;
             ctx.fillRect(partXlocation, partYlocation, graphics.squareSize, graphics.squareSize);
           });
         },
         drawGame: function () {
-            var ctx = graphics.canvas.getContext("2d");
+            let ctx = graphics.canvas.getContext("2d");
             ctx.clearRect(0, 0, graphics.canvas.width, graphics.canvas.height);
             graphics.drawBoard(ctx);
-            graphics.draw(ctx, snake.parts, "green");
             graphics.draw(ctx, game.fruit, "red");
+            graphics.draw(ctx, snake.parts, "green");
+            
         }
       };
       
-      var gameControl = {
+      let gameControl = {
         processInput: function(keyPressed) {
-            var key = keyPressed.key.toLowerCase();
-            var targetDirection = snake.facing;
-            if(key == "w") targetDirection = "N";
-            if(key == "s") targetDirection = "S";
-            if(key == "a") targetDirection = "W";
-            if(key == "d") targetDirection = "E";
+            let key = keyPressed.key.toLowerCase();
+            let targetDirection = snake.facing;
+            if(key == "w" && snake.facing != "S") targetDirection = "N";
+            if(key == "s" && snake.facing != "N") targetDirection = "S";
+            if(key == "a" && snake.facing != "E") targetDirection = "W";
+            if(key == "d" && snake.facing != "W") targetDirection = "E";
             snake.facing = targetDirection;
             game.tick();
         },
